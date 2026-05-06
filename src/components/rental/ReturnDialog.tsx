@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { rentalApi } from "@/lib/rental-api";
+import { useAuthStore } from "@/store/authStore";
 import { RentalPc } from "@/types";
 import { toast } from "sonner";
 
@@ -25,24 +26,32 @@ interface Props {
 
 export function ReturnDialog({ rental, open, onClose }: Props) {
   const queryClient = useQueryClient();
+  const currentUser = useAuthStore((s) => s.user);
   const today = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
   const [returnDate, setReturnDate] = useState(today);
-  const [returnedBy, setReturnedBy] = useState("");
 
   useEffect(() => {
-    if (open) {
-      setReturnDate(today);
-      setReturnedBy("");
-    }
+    if (open) setReturnDate(today);
   }, [open, today]);
+
+  function buildName() {
+    if (!currentUser) return "시스템";
+    return (currentUser.familyName && currentUser.givenName)
+      ? `${currentUser.familyName}${currentUser.givenName}`
+      : currentUser.name;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!rental) return;
     setLoading(true);
     try {
-      await rentalApi.returnRentalPc(rental.id, { returnDate, returnedBy });
+      await rentalApi.returnRentalPc(rental.id, {
+        returnDate,
+        returnedByEmpNo: currentUser?.empNo ?? null,
+        returnedBy: buildName(),
+      });
       toast.success("반납 처리가 완료되었습니다.");
       queryClient.invalidateQueries({ queryKey: ["rentalPcs"] });
       queryClient.invalidateQueries({ queryKey: ["returns"] });
@@ -80,13 +89,10 @@ export function ReturnDialog({ rental, open, onClose }: Props) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">등록자</label>
-            <Input
-              placeholder="반납 등록자 이름 입력"
-              value={returnedBy}
-              onChange={(e) => setReturnedBy(e.target.value)}
-              required
-            />
+            <label className="text-sm font-medium">처리자</label>
+            <div className="text-sm px-3 py-2 rounded-md border bg-gray-50 text-gray-700">
+              {buildName()}
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>취소</Button>
