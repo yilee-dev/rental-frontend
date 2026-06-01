@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect } from "react";
-import { fetchCurrentUser, login } from "@/lib/auth";
+import { ShieldOff } from "lucide-react";
+import { fetchCurrentUser, hasAnyAccess, login } from "@/lib/auth";
+import { getDefaultRoute } from "@/lib/permissions";
 import { useAuthStore } from "@/store/authStore";
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialized, user, setUser, setInitialized } = useAuthStore();
+  const { initialized, user, forbidden, setUser, setInitialized } = useAuthStore();
 
   useEffect(() => {
     fetchCurrentUser().then((user) => {
@@ -30,7 +34,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           sessionStorage.removeItem("redirect_after_login");
           const current = window.location.href;
           if (redirectUrl !== current) {
-            window.location.replace(redirectUrl);
+            // 저장된 URL이 루트(/)인 경우 권한에 맞는 첫 페이지로 이동
+            const targetPath = new URL(redirectUrl).pathname;
+            const finalUrl = targetPath === "/"
+              ? `${window.location.origin}${getDefaultRoute(user.permissions ?? [])}`
+              : redirectUrl;
+            window.location.replace(finalUrl);
             return; // 새 페이지에서 initialized 처리
           }
         }
@@ -60,6 +69,27 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             다시 로그인
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (!hasAnyAccess(user) || forbidden) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Card className="w-80">
+          <CardHeader className="items-center text-center">
+            <div className="flex justify-center w-full">
+              <ShieldOff className="size-8 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-destructive">권한이 부족합니다</CardTitle>
+            <CardDescription>관리자에게 권한을 요청하세요.</CardDescription>
+          </CardHeader>
+          <CardFooter className="justify-center">
+            <Button variant="outline" size="sm" onClick={() => login()}>
+              재로그인
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }

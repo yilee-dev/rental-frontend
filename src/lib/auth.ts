@@ -49,6 +49,10 @@ export function getCsrfToken(): string | null {
  * BFF sign-out API를 호출하여 Keycloak 세션까지 완전히 종료합니다.
  * CSRF 토큰을 X-XSRF-TOKEN 헤더에 포함합니다.
  */
+export function hasAnyAccess(user: AuthUser): boolean {
+  return (user.permissions?.length ?? 0) > 0;
+}
+
 export async function logout() {
   const csrfToken = getCsrfToken();
   try {

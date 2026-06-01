@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardCheck, HardDrive, LayoutDashboard, Monitor, Package, RefreshCw, Shield, Trash2, Undo2, UserX, X } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, ClipboardCheck, HardDrive, LayoutDashboard, Monitor, Network, Package, RefreshCw, Server, Shield, Trash2, Undo2, UserX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/lib/permissions";
@@ -12,6 +12,7 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: string;
+  improving?: boolean;
 }
 
 interface NavGroup {
@@ -42,19 +43,29 @@ const navGroups: NavGroup[] = [
       { href: "/software", label: "필수 소프트웨어", icon: Package, permission: "software:read" },
     ],
   },
+  {
+    title: "인프라 관리",
+    items: [
+      { href: "/servers", label: "서버 자산 관리", icon: Server, permission: "server:read", improving: true },
+      { href: "/network-equipment", label: "네트워크 장비 관리", icon: Network, permission: "network:read", improving: true },
+      { href: "/network-traffic", label: "트래픽 분석", icon: Activity, permission: "server:read" },
+    ],
+  },
 ];
 
 const adminItems: NavItem[] = [
-  { href: "/admin/auth-rules", label: "API 권한 관리", icon: Shield, permission: "rental:write" },
-  { href: "/admin/reset", label: "데이터 초기화", icon: Trash2, permission: "rental:delete" },
+  { href: "/admin/auth-rules", label: "API 권한 관리", icon: Shield, permission: "admin:manage" },
+  { href: "/admin/reset", label: "데이터 초기화", icon: Trash2, permission: "admin:manage" },
 ];
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({ open, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const permissions = usePermissions();
 
@@ -79,8 +90,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-56 border-r border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex flex-col transition-transform duration-300 ease-in-out",
-          "lg:static lg:translate-x-0 lg:z-auto",
+          "fixed inset-y-0 left-0 z-40 w-56 border-r border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex flex-col transition-all duration-300 ease-in-out",
+          "lg:static lg:z-auto lg:translate-x-0",
+          collapsed ? "lg:w-14" : "lg:w-56",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -95,29 +107,39 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           {visibleGroups.map((group, gi) => (
             <div key={gi}>
               {group.title && (
-                <div className="pb-1.5 px-3">
+                <div className={cn("pb-1.5", collapsed ? "lg:hidden" : "px-3")}>
                   <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     {group.title}
                   </p>
                 </div>
               )}
+              {group.title && gi > 0 && (
+                <div className="hidden lg:block border-t border-gray-200/60 dark:border-gray-800/60 mb-2 mx-1" />
+              )}
               <div className="space-y-0.5">
-                {group.items.map(({ href, label, icon: Icon }) => {
+                {group.items.map(({ href, label, icon: Icon, improving }) => {
                   const isActive = pathname === href;
                   return (
                     <Link
                       key={href}
                       href={href}
                       onClick={onClose}
+                      title={collapsed ? label : undefined}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200",
+                        collapsed && "lg:justify-center lg:px-0",
                         isActive
                           ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
                           : "text-gray-500 dark:text-gray-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/40 hover:text-gray-700 dark:hover:text-gray-300"
                       )}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
-                      {label}
+                      <span className={cn("flex-1", collapsed && "lg:hidden")}>{label}</span>
+                      {improving && !collapsed && (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
+                          개선 중
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -127,7 +149,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
           {visibleAdmin.length > 0 && (
             <>
-              <div className="pb-1.5 px-3">
+              <div className="hidden lg:block border-t border-gray-200/60 dark:border-gray-800/60 mb-2 mx-1" />
+              <div className={cn("pb-1.5", collapsed ? "lg:hidden" : "px-3")}>
                 <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">관리자</p>
               </div>
               {visibleAdmin.map(({ href, label, icon: Icon }) => {
@@ -137,21 +160,45 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     key={href}
                     href={href}
                     onClick={onClose}
+                    title={collapsed ? label : undefined}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200",
+                      collapsed && "lg:justify-center lg:px-0",
                       isActive
                         ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100/70 dark:hover:bg-gray-800/40 hover:text-gray-700 dark:hover:text-gray-300"
                     )}
                   >
-                    <Icon className={cn("w-4 h-4 shrink-0")} />
-                    {label}
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className={cn(collapsed && "lg:hidden")}>{label}</span>
                   </Link>
                 );
               })}
             </>
           )}
         </nav>
+
+        {/* 데스크탑 접기/펼치기 버튼 */}
+        <div className="hidden lg:flex border-t border-gray-200/80 dark:border-gray-800 p-2 shrink-0">
+          <button
+            onClick={onToggleCollapse}
+            className={cn(
+              "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-[13px] font-medium",
+              "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300",
+              "hover:bg-gray-100/70 dark:hover:bg-gray-800/40 transition-all duration-200",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4 shrink-0" />
+            ) : (
+              <>
+                <ChevronLeft className="w-4 h-4 shrink-0" />
+                <span>접기</span>
+              </>
+            )}
+          </button>
+        </div>
       </aside>
     </>
   );

@@ -275,6 +275,115 @@ export interface AuditVerifyRequest {
   notes?: string;
 }
 
+// ── 서버 자산 관리 ───────────────────────────────────────────────────────────
+export type ServerType = "VIRTUAL" | "PHYSICAL";
+export type ServerStatus = "RUNNING" | "STOPPED" | "MAINTENANCE";
+export type ServerPurpose = "WEB" | "DB" | "APP" | "FILE" | "MAIL" | "BACKUP" | "MONITORING" | "AD" | "ETC";
+
+export interface Server {
+  id: number;
+  hostname: string;
+  serverType: ServerType;
+  hypervisorType: string | null;
+  hostServer: string | null;
+  ipAddress: string;
+  subnetMask: string | null;
+  gateway: string | null;
+  macAddress: string | null;
+  os: string;
+  cpuCores: number | null;
+  memoryGb: number | null;
+  diskGb: number | null;
+  purpose: ServerPurpose;
+  description: string | null;
+  firewallEnabled: boolean;
+  firewallPorts: string | null;
+  businessSiteCode: string | null;
+  location: string | null;
+  assetNo: string | null;
+  serialNo: string | null;
+  managedBy: string | null;
+  status: ServerStatus;
+  backupEnabled: boolean;
+  monitoringUrl: string | null;
+  memo: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServerRequest {
+  hostname: string;
+  serverType: ServerType;
+  hypervisorType: string | null;
+  hostServer: string | null;
+  ipAddress: string;
+  subnetMask: string | null;
+  gateway: string | null;
+  macAddress: string | null;
+  os: string;
+  cpuCores: number | null;
+  memoryGb: number | null;
+  diskGb: number | null;
+  purpose: ServerPurpose;
+  description: string | null;
+  firewallEnabled: boolean;
+  firewallPorts: string | null;
+  businessSiteCode: string | null;
+  location: string | null;
+  assetNo: string | null;
+  serialNo: string | null;
+  managedBy: string | null;
+  status: ServerStatus;
+  backupEnabled: boolean;
+  monitoringUrl: string | null;
+  memo: string | null;
+}
+
+// ── 네트워크 장비 관리 ───────────────────────────────────────────────────────
+export type NetworkEquipmentType = "ROUTER" | "SWITCH" | "FIREWALL" | "AP" | "NAS" | "UPS" | "LOAD_BALANCER" | "OTHER";
+export type NetworkEquipmentStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+
+export interface NetworkEquipment {
+  id: number;
+  equipmentType: NetworkEquipmentType;
+  manufacturer: string | null;
+  model: string | null;
+  assetNo: string | null;
+  serialNo: string | null;
+  ipAddress: string | null;
+  macAddress: string | null;
+  businessSiteCode: string | null;
+  location: string | null;
+  purpose: string | null;
+  portCount: number | null;
+  managedBy: string | null;
+  status: NetworkEquipmentStatus;
+  purchasedAt: string | null;
+  warrantyExpiry: string | null;
+  memo: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NetworkEquipmentRequest {
+  equipmentType: NetworkEquipmentType;
+  manufacturer: string | null;
+  model: string | null;
+  assetNo: string | null;
+  serialNo: string | null;
+  ipAddress: string | null;
+  macAddress: string | null;
+  businessSiteCode: string | null;
+  location: string | null;
+  purpose: string | null;
+  portCount: number | null;
+  managedBy: string | null;
+  status: NetworkEquipmentStatus;
+  purchasedAt: string | null;
+  warrantyExpiry: string | null;
+  memo: string | null;
+}
+
 // ── dsign 전자서명 ────────────────────────────────────────────────────────────
 export type DsignSendStatus = "PENDING" | "SENT" | "FAILED" | "SKIPPED";
 export type DsignSignStatus = "WAITING" | "SIGNED" | "EXPIRED" | "UNKNOWN";

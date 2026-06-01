@@ -61,7 +61,8 @@ function ScanPageInner() {
 
   // 배정 변경
   const [showReassign, setShowReassign] = useState(false);
-  const [empNoInput, setEmpNoInput] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [foundUser, setFoundUser] = useState<UserProfile | null>(null);
   const [searching, setSearching] = useState(false);
   const [reassigning, setReassigning] = useState(false);
@@ -130,17 +131,18 @@ function ScanPageInner() {
   }
 
   async function handleSearchUser() {
-    if (!empNoInput.trim()) return;
+    if (!nameInput.trim()) return;
     setSearching(true);
     setFoundUser(null);
+    setSearchResults([]);
     try {
-      const padded = empNoInput.trim().padStart(6, "0");
-      const results = await userApi.searchUsers(padded, undefined, 5);
-      const match = results.find((u) => u.empNo === padded);
-      if (match) {
-        setFoundUser(match);
-      } else {
+      const results = await userApi.searchUsers(nameInput.trim(), undefined, 10);
+      if (results.length === 0) {
         toast.error("사용자를 찾을 수 없습니다.");
+      } else if (results.length === 1) {
+        setFoundUser(results[0]);
+      } else {
+        setSearchResults(results);
       }
     } catch {
       toast.error("사용자 검색에 실패했습니다.");
@@ -167,7 +169,8 @@ function ScanPageInner() {
       toast.success(`${foundUser.name}님으로 배정이 변경되었습니다.`);
       setShowReassign(false);
       setFoundUser(null);
-      setEmpNoInput("");
+      setNameInput("");
+      setSearchResults([]);
       // PC 정보 새로고침
       handleLookup(pcInfo.rentalNo);
     } catch {
@@ -416,16 +419,16 @@ function ScanPageInner() {
                 <span className="text-sm font-bold text-blue-700 flex items-center gap-1">
                   <UserCog className="w-4 h-4" /> 배정 변경
                 </span>
-                <button onClick={() => { setShowReassign(false); setFoundUser(null); setEmpNoInput(""); }} className="text-xs text-gray-400 hover:text-gray-600">
+                <button onClick={() => { setShowReassign(false); setFoundUser(null); setNameInput(""); setSearchResults([]); }} className="text-xs text-gray-400 hover:text-gray-600">
                   취소
                 </button>
               </div>
 
               <div className="flex gap-2">
                 <Input
-                  value={empNoInput}
-                  onChange={(e) => setEmpNoInput(e.target.value)}
-                  placeholder="사번 입력"
+                  value={nameInput}
+                  onChange={(e) => { setNameInput(e.target.value); setFoundUser(null); setSearchResults([]); }}
+                  placeholder="이름 입력"
                   className="flex-1"
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearchUser(); } }}
                 />
@@ -435,11 +438,30 @@ function ScanPageInner() {
                 </Button>
               </div>
 
+              {searchResults.length > 0 && !foundUser && (
+                <div className="rounded-lg border divide-y">
+                  {searchResults.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => { setFoundUser(u); setSearchResults([]); }}
+                      className="w-full text-left px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100"
+                    >
+                      <div className="text-sm font-semibold">{u.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {u.empNo && <span>사번 {u.empNo} · </span>}
+                        {u.departmentName ?? u.department ?? "-"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {foundUser && (
                 <div className="rounded-lg bg-blue-50 p-3 space-y-2">
                   <div className="text-sm font-semibold">{foundUser.name}</div>
                   <div className="text-xs text-gray-500">
-                    사번 {foundUser.empNo} · {foundUser.departmentName ?? foundUser.department ?? "-"}
+                    {foundUser.empNo && <span>사번 {foundUser.empNo} · </span>}
+                    {foundUser.departmentName ?? foundUser.department ?? "-"}
                   </div>
                   <Button
                     onClick={handleReassign}

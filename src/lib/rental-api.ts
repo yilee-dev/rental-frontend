@@ -13,70 +13,7 @@ import {
   ReturnRequest,
 } from "@/types";
 
-import { getCsrfToken, login } from "@/lib/auth";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
-function csrfHeaders(): Record<string, string> {
-  const token = getCsrfToken();
-  return token ? { "X-XSRF-TOKEN": token } : {};
-}
-
-async function fetchApi<T>(
-  endpoint: string,
-  options?: RequestInit,
-): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...csrfHeaders(),
-        ...options?.headers,
-      },
-      ...options,
-    });
-  } catch {
-    // 세션 만료 시 BFF가 Keycloak으로 리다이렉트 → CORS 오류로 fetch 자체가 실패
-    login();
-    throw new Error("Session expired");
-  }
-  if (response.redirected || response.status === 401) {
-    login();
-    throw new Error("Session expired");
-  }
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  const text = await response.text();
-  if (!text) return undefined as T;
-  return JSON.parse(text) as T;
-}
-
-async function downloadBlob(
-  endpoint: string,
-  fallbackFilename: string,
-  options?: RequestInit,
-): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    credentials: "include",
-    ...options,
-  });
-  if (response.redirected || response.status === 401) {
-    login();
-    throw new Error("Session expired");
-  }
-  if (!response.ok) throw new Error(`Download Error: ${response.status}`);
-  const disposition = response.headers.get("Content-Disposition") ?? "";
-  const match = disposition.match(/filename\*=UTF-8''(.+)/);
-  const filename = match ? decodeURIComponent(match[1]) : fallbackFilename;
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { fetchApi, fetchRaw, downloadBlob } from "@/lib/http-client";
 
 export const rentalApi = {
   getDashboard: () => fetchApi<DashboardStats>("/api/v1/rental-pcs/dashboard"),
@@ -112,9 +49,7 @@ export const rentalApi = {
     }),
 
   undoReturn: (id: number) =>
-    fetchApi<void>(`/api/v1/rental-pcs/${id}/return`, {
-      method: "DELETE",
-    }),
+    fetchApi<void>(`/api/v1/rental-pcs/${id}/return`, { method: "DELETE" }),
 
   getAssignedPcs: () => fetchApi<RentalPc[]>("/api/v1/rental-pcs/assigned"),
 
@@ -122,24 +57,14 @@ export const rentalApi = {
 
   getLostRecords: () => fetchApi<RentalPc[]>("/api/v1/rental-pcs/lost"),
 
+  // FormData 업로드: Content-Type 미설정 (브라우저가 multipart boundary 자동 지정)
   uploadExcel: async (file: File): Promise<void> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(
-      `${API_BASE_URL}/api/v1/rental-pcs/excel-upload`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { ...csrfHeaders() },
-        body: formData,
-      },
-    );
-    console.log(response);
-    if (response.redirected || response.status === 401) {
-      login();
-      throw new Error("Session expired");
-    }
-    if (!response.ok) throw new Error(`Upload Error: ${response.status}`);
+    await fetchRaw("/api/v1/rental-pcs/excel-upload", {
+      method: "POST",
+      body: formData,
+    });
   },
 
   reportLost: (id: number) =>
@@ -224,30 +149,16 @@ export const rentalApi = {
   deleteAllRentalPcs: () =>
     fetchApi<void>("/api/v1/rental-pcs", { method: "DELETE" }),
 
-  downloadQrLabelPdf: async (
-    ids: number[],
-    format: LabelFormat,
-  ): Promise<void> => {
-    const response = await fetch(
-      `${API_BASE_URL}/api/v1/rental-pcs/qr-labels`,
+  // POST → blob (JSON body + CSRF 포함, Content-Type은 options.headers로 전달)
+  downloadQrLabelPdf: async (ids: number[], format: LabelFormat): Promise<void> => {
+    await downloadBlob(
+      "/api/v1/rental-pcs/qr-labels",
+      `QR라벨_${new Date().toISOString().slice(0, 10)}.pdf`,
       {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...csrfHeaders() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids, format }),
       },
     );
-    if (response.redirected || response.status === 401) {
-      login();
-      throw new Error("Session expired");
-    }
-    if (!response.ok) throw new Error(`Download Error: ${response.status}`);
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `QR라벨_${new Date().toISOString().slice(0, 10)}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
   },
 };

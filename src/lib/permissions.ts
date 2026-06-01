@@ -19,6 +19,14 @@ export const P = {
   SOFTWARE_READ: "software:read",
   SOFTWARE_WRITE: "software:write",
   SOFTWARE_DELETE: "software:delete",
+  // 서버 자산
+  SERVER_READ: "server:read",
+  SERVER_WRITE: "server:write",
+  SERVER_DELETE: "server:delete",
+  // 네트워크 장비
+  NETWORK_READ: "network:read",
+  NETWORK_WRITE: "network:write",
+  NETWORK_DELETE: "network:delete",
 } as const;
 
 export function useHasPermission(permission: string): boolean {
@@ -29,4 +37,20 @@ export function useHasPermission(permission: string): boolean {
 export function usePermissions(): string[] {
   const user = useAuthStore((s) => s.user);
   return user?.permissions ?? [];
+}
+
+const DEFAULT_ROUTE_MAP: { permission: string; route: string }[] = [
+  { permission: P.RENTAL_READ,   route: "/dashboard" },
+  { permission: P.AUDIT_READ,    route: "/audit" },
+  { permission: P.DISPOSAL_READ, route: "/disposal" },
+  { permission: P.SOFTWARE_READ, route: "/software" },
+  { permission: P.SERVER_READ,   route: "/servers" },
+  { permission: P.NETWORK_READ,  route: "/network-equipment" },
+];
+
+export function getDefaultRoute(permissions: string[]): string {
+  for (const { permission, route } of DEFAULT_ROUTE_MAP) {
+    if (permissions.includes(permission)) return route;
+  }
+  return "/";
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer } from "@/components/ui/chart";
 import { rentalApi } from "@/lib/rental-api";
+import { getDefaultRoute, usePermissions } from "@/lib/permissions";
 import { CompanySiteStatEntry, DashboardStats, YearlyTypeEntry } from "@/types";
 
 const monthlyChartConfig = {
@@ -73,6 +74,14 @@ function buildYearlyChartData(data: DashboardStats, selectedYear: string) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const permissions = usePermissions();
+
+  useEffect(() => {
+    if (permissions.length > 0 && !permissions.includes("rental:read")) {
+      router.replace(getDefaultRoute(permissions));
+    }
+  }, [permissions, router]);
+
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: rentalApi.getDashboard,

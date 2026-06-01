@@ -16,7 +16,10 @@ export default function QueryProvider({
           queries: {
             staleTime: 30 * 1000,
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: (failureCount, error) => {
+              if (error instanceof Error && error.message.includes("403")) return false;
+              return failureCount < 1;
+            },
           },
         },
       })

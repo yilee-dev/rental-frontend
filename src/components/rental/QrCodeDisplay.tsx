@@ -2,7 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 
-const QR_BASE_URL = process.env.NEXT_PUBLIC_QR_BASE_URL ?? "https://rental.donghee.co.kr";
+const QR_BASE_URL = process.env.NEXT_PUBLIC_QR_BASE_URL ?? "http://10.117.9.40:3000";
 
 interface QrCodeDisplayProps {
   rentalNo: string;

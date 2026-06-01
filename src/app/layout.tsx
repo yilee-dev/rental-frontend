@@ -14,7 +14,7 @@ const geistSans = localFont({
 
 
 export const metadata: Metadata = {
-  title: "렌탈 PC 관리 시스템",
+  title: "DH: ASSET MANAGEMENT",
   description: "렌탈 PC 등록, 조회 및 관리",
 };
 

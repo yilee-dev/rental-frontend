@@ -12,7 +12,7 @@ import { useHasPermission } from "@/lib/permissions";
 import { toast } from "sonner";
 
 export default function ResetPage() {
-  const canDelete = useHasPermission("rental:delete");
+  const canDelete = useHasPermission("admin:manage");
   const router = useRouter();
 
   useEffect(() => {

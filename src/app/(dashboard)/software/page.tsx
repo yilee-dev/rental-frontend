@@ -393,11 +393,18 @@ export default function SoftwarePage() {
     }
   }
 
-  // 카테고리별 카운트
+  // 카테고리별 카운트 + 용량
   const categoryCounts = CATEGORIES.reduce((acc, c) => {
     acc[c] = list.filter((sw) => (sw.category ?? "기타") === c).length;
     return acc;
   }, {} as Record<string, number>);
+
+  const categorySizes = CATEGORIES.reduce((acc, c) => {
+    acc[c] = list.filter((sw) => (sw.category ?? "기타") === c).reduce((s, sw) => s + sw.fileSize, 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalSize = list.reduce((s, sw) => s + sw.fileSize, 0);
 
   // 필터링
   const filtered = list.filter((sw) => {
@@ -435,7 +442,7 @@ export default function SoftwarePage() {
             필수 소프트웨어
           </h1>
           {!isLoading && (
-            <p className="text-sm text-gray-500">전체 {list.length}개</p>
+            <p className="text-sm text-gray-500">전체 {list.length}개 · {formatFileSize(totalSize)}</p>
           )}
         </div>
         {canWrite && (
@@ -459,6 +466,7 @@ export default function SoftwarePage() {
             }`}
           >
             전체 {list.length}
+            {list.length > 0 && <span className="opacity-60 font-normal"> · {formatFileSize(totalSize)}</span>}
           </button>
           {CATEGORIES.map((c) => {
             const meta = CATEGORY_META[c];
@@ -476,6 +484,7 @@ export default function SoftwarePage() {
               >
                 <Icon className="w-3 h-3" />
                 {c} {count}
+                {count > 0 && <span className="opacity-60 font-normal"> · {formatFileSize(categorySizes[c])}</span>}
               </button>
             );
           })}
@@ -522,6 +531,8 @@ export default function SoftwarePage() {
                     <Icon className={`w-4 h-4 ${meta.color}`} />
                     <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{group.category}</h2>
                     <span className="text-xs text-gray-400">{group.items.length}개</span>
+                    <span className="text-xs text-gray-400">·</span>
+                    <span className="text-xs text-gray-400">{formatFileSize(group.items.reduce((s, sw) => s + sw.fileSize, 0))}</span>
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
